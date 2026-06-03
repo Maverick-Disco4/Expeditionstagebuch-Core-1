@@ -1,21 +1,23 @@
-# Expeditionstagebuch Core 1
+# Expeditionstagebuch Core 1.2
 
-Saubere PWA-Neuentwicklung für mehrere Expeditionen/Reisen.
+Saubere PWA-Version für mehrere Expeditionen.
 
-## Enthalten
-- Mehrere Expeditionen/Trips
-- Dashboard im Cockpit-Stil
-- Frankreich 2026 als erster Beispieltrip
-- Planung mit editierbaren Etappen
-- Kartenansicht mit geplanter Route und gefahrenen Tracks
-- GPS-Tracking mit Display-Wachhalten
-- Journal/POI-Grundstruktur
-- Reisekasse
-- Backup Export/Import
-- PWA für Installation auf Android
+## Neu in Core 1.2
+- Etappen bearbeiten
+- Etappen sortieren mit ↑/↓ und Drag & Drop
+- Etappen duplizieren
+- Etappen löschen
+- Trip importieren/exportieren
+- Backup importieren/exportieren
+- Kartenmodul mit geplanter Route
+- Straßenroute normal über OSRM/OpenStreetMap
+- Option „Straßenroute ohne Autobahn“ über OpenRouteService API-Key
+- Routencache mit Cache-leeren
+- GPS-Grundtracking mit Display-Wachhalten
+- gefahrene Tracks bleiben pro Expedition gespeichert
+- Journal/POI- und Reisekassen-Grundfunktionen aus Core 1.1
 
-## Upload
-Diese Dateien ins GitHub Pages Repository legen:
+## Dateien für GitHub Pages
 - index.html
 - app.js
 - styles.css
@@ -23,13 +25,3 @@ Diese Dateien ins GitHub Pages Repository legen:
 - manifest.webmanifest
 - sw.js
 - README.md
-
-## Core 1.1
-- Beispieldaten können entfernt werden
-- POIs löschen
-- Ausgaben löschen
-- Chronik-Einträge löschen
-- Expeditionen löschen
-- POIs hinzufügen
-- Chronik-Einträge hinzufügen
-- Dashboard kompakter auf Mobilgeräten

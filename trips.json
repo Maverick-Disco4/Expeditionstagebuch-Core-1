@@ -1,5 +1,5 @@
 {
-  "appName": "Expeditionstagebuch Core 1",
+  "appName": "Expeditionstagebuch Core 1.2",
   "activeTripId": "frankreich-2026",
   "trips": [
     {
@@ -9,7 +9,8 @@
       "vehicle": "Discovery 4",
       "startDate": "2026-07-11",
       "endDate": "2026-08-02",
-      "cover": "",
+      "routeMode": "osrm",
+      "orsApiKey": "",
       "legs": [
         {
           "id": "leg-01",
@@ -168,56 +169,10 @@
           "notes": "Heimfahrt."
         }
       ],
-      "pois": [
-        {
-          "id": "poi-1",
-          "name": "Kajaktour Tarn",
-          "category": "Aktivität",
-          "rating": 5,
-          "date": "2026-07-29",
-          "lat": 44.34,
-          "lon": 3.37,
-          "note": "Schöner Abschnitt mit ruhigem Wasser.",
-          "photos": []
-        },
-        {
-          "id": "poi-2",
-          "name": "Stellplatz St. Chély",
-          "category": "Camping",
-          "rating": 4,
-          "date": "2026-07-28",
-          "lat": 44.33,
-          "lon": 3.41,
-          "note": "Direkt am Fluss.",
-          "photos": []
-        }
-      ],
-      "expenses": [
-        {
-          "id": "exp-1",
-          "date": "2026-07-28",
-          "category": "Diesel",
-          "amount": 76.4,
-          "note": "Tanken vor Tarn"
-        },
-        {
-          "id": "exp-2",
-          "date": "2026-07-28",
-          "category": "Lebensmittel",
-          "amount": 38.25,
-          "note": "Einkauf"
-        }
-      ],
+      "pois": [],
+      "expenses": [],
       "tracks": [],
-      "journal": [
-        {
-          "id": "j-1",
-          "date": "2026-07-28",
-          "title": "Ankunft am Tarn",
-          "text": "Schöner Stellplatz direkt am Fluss. Abends Kajak gefahren – Mega!",
-          "photos": []
-        }
-      ]
+      "journal": []
     }
   ]
 }

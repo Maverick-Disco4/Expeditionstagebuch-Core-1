@@ -4,16 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#07150d">
-  <title>Expeditionstagebuch Core 1.1</title>
+  <title>Expeditionstagebuch Core 1.2</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body>
 <header>
-  <button class="icon">☰</button>
+  <button class="icon" id="menuBtn">☰</button>
   <div>
-    <h1>Expeditionstagebuch Core 1.1</h1>
+    <h1>Expeditionstagebuch Core 1.2</h1>
     <p id="activeTripSub">Aktive Expedition</p>
   </div>
   <button id="installBtn" hidden>Installieren</button>
@@ -24,8 +24,8 @@
     <section class="hero card">
       <div class="hero-shade">
         <span class="kicker">AKTIVE EXPEDITION</span>
-        <h2 id="dashTripName">Frankreich 2026</h2>
-        <p id="dashTripMeta">Roadtrip · Dachzelt · Kajak</p>
+        <h2 id="dashTripName">–</h2>
+        <p id="dashTripMeta">–</p>
         <div class="progress"><span id="tripProgressBar"></span></div>
         <div class="hero-stats">
           <div><strong id="statDays">0 / 0</strong><small>Tage</small></div>
@@ -36,11 +36,14 @@
     </section>
 
     <section class="current card">
-      <div>
+      <div class="current-copy">
         <span class="kicker">AKTUELLE ETAPPE</span>
         <h2 id="currentLegTitle">–</h2>
         <p id="currentLegMeta">–</p>
-        <button onclick="showView('planning')">Etappe öffnen</button>
+        <div class="action-row">
+          <button onclick="showView('planning')">Etappe öffnen</button>
+          <button class="secondary" onclick="showView('mapView')">Karte öffnen</button>
+        </div>
       </div>
       <div id="miniMap"></div>
     </section>
@@ -77,9 +80,10 @@
   <section id="trips" class="view">
     <section class="card">
       <h2>Meine Expeditionen</h2>
-      <button id="newTripBtn">Neue Expedition</button>
-      <button id="cleanDemoBtn" class="danger">Beispieldaten entfernen</button>
-      <button id="exportAllBtn" class="secondary">Backup exportieren</button>
+      <div class="action-row">
+        <button id="newTripBtn">Neue Expedition</button>
+        <button id="exportAllBtn" class="secondary">Backup exportieren</button>
+      </div>
       <label class="import">Backup importieren<input id="importAllInput" type="file" accept="application/json"></label>
       <div id="tripList"></div>
     </section>
@@ -87,9 +91,13 @@
 
   <section id="planning" class="view">
     <section class="card">
-      <h2>Planung</h2>
-      <button id="addLegBtn">Etappe hinzufügen</button>
-      <button id="exportTripBtn" class="secondary">Trip exportieren</button>
+      <h2>Planung <span class="badge">Core 1.2</span></h2>
+      <p class="hint">Etappen antippen zum Bearbeiten. Sortieren mit ↑/↓. Geänderte Etappen werden in der aktiven Expedition gespeichert.</p>
+      <div class="action-row">
+        <button id="addLegBtn">Etappe hinzufügen</button>
+        <button id="exportTripBtn" class="secondary">Trip exportieren</button>
+      </div>
+      <label class="import">Trip importieren<input id="importTripInput" type="file" accept="application/json"></label>
       <div id="legEditor" hidden></div>
       <div id="legList"></div>
     </section>
@@ -97,10 +105,24 @@
 
   <section id="mapView" class="view">
     <section class="map-tools card">
-      <button id="startGpsBtn">GPS starten</button>
-      <button id="pauseGpsBtn" class="secondary">Pausieren</button>
-      <button id="finishTrackBtn" class="secondary">Track speichern</button>
-      <span id="wakeStatus">Display: bereit</span>
+      <div class="route-controls">
+        <select id="routeMode">
+          <option value="straight">Luftlinie</option>
+          <option value="osrm">Straßenroute normal</option>
+          <option value="ors-avoid">Straßenroute ohne Autobahn</option>
+        </select>
+        <input id="orsApiKey" type="password" placeholder="OpenRouteService API-Key optional">
+        <button id="buildRouteBtn" class="secondary">Route berechnen</button>
+        <button id="clearRouteCacheBtn" class="secondary">Cache leeren</button>
+      </div>
+      <div class="route-status" id="routeStatus">Route bereit</div>
+      <div class="action-row">
+        <button id="startGpsBtn">GPS starten</button>
+        <button id="pauseGpsBtn" class="secondary">Pausieren</button>
+        <button id="finishTrackBtn" class="secondary">Track speichern</button>
+      </div>
+      <div id="wakeStatus" class="wake">Display: bereit</div>
+      <div class="legend"><span class="blue">━ geplant</span><span class="green">━ gefahren</span><span>🚙 live</span></div>
     </section>
     <section id="map"></section>
   </section>
@@ -108,11 +130,13 @@
   <section id="journal" class="view">
     <section class="card">
       <h2>Journal & POIs</h2>
-      <button id="addPoiBtn">POI hinzufügen</button>
+      <div class="action-row">
+        <button id="addPoiBtn">POI hinzufügen</button>
+        <button id="addJournalBtn" class="secondary">Chronik-Eintrag</button>
+      </div>
       <div id="poiEditor" hidden></div>
       <div id="poiList"></div>
       <h2>Reisechronik</h2>
-      <button id="addJournalBtn" class="secondary">Chronik-Eintrag hinzufügen</button>
       <div id="journalList"></div>
     </section>
   </section>
@@ -123,7 +147,7 @@
       <form id="expenseForm" class="form-grid">
         <input id="expenseAmount" type="number" step="0.01" placeholder="Betrag">
         <select id="expenseCategory">
-          <option>Diesel</option><option>Camping</option><option>Lebensmittel</option><option>Restaurant</option><option>Aktivität</option><option>Sonstiges</option>
+          <option>Diesel</option><option>Camping</option><option>Lebensmittel</option><option>Restaurant</option><option>Aktivität</option><option>Eintritt</option><option>Sonstiges</option>
         </select>
         <input id="expenseNote" placeholder="Notiz">
         <button>Ausgabe speichern</button>
