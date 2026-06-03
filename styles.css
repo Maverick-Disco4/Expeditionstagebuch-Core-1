@@ -12,3 +12,14 @@ nav{position:fixed;bottom:0;left:0;right:0;background:#07110cf2;backdrop-filter:
 nav button{background:transparent;color:var(--muted);padding:4px 2px;border-radius:12px}nav button.active{color:var(--green)}nav button small{display:block;font-size:10px}.plus{background:var(--green);color:#fff;border-radius:999px;width:52px;height:52px;justify-self:center;font-size:28px;line-height:0}
 #map{height:calc(100vh - 210px);min-height:460px;border-radius:18px;border:1px solid var(--line)}.map-tools{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:center}.form-grid{display:grid;grid-template-columns:110px 1fr 1fr auto;gap:8px}input,select,textarea{width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);background:#08130d;color:var(--text);font:inherit}.editor{display:grid;gap:8px;background:#08130d;border:1px solid var(--line);border-radius:16px;padding:12px;margin:12px 0}.editor textarea{min-height:80px}.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}.import input{display:none}
 @media(max-width:760px){body{padding-bottom:82px}header{grid-template-columns:38px 1fr auto}h1{font-size:18px}.hero h2{font-size:30px}.hero-stats,.metric-grid,.current,.split,.map-tools,.form-grid,.two{grid-template-columns:1fr}#miniMap{height:260px}nav{grid-template-columns:repeat(7,1fr)}nav button{font-size:18px}.card{border-radius:16px}}
+
+/* Core 1.1 */
+.danger{background:transparent!important;color:#ffb6b6!important;border:1px solid var(--red)!important}
+.action-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.item-actions{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.item-actions button{padding:8px 10px;font-size:13px}
+.badge{display:inline-block;background:#1aa83b;color:#fff;border-radius:999px;padding:3px 8px;font-size:12px;font-weight:800}
+.current{grid-template-columns:1fr!important}
+#miniMap{height:220px!important;min-height:220px!important}
+.metric-grid{grid-template-columns:repeat(2,1fr)!important}
+@media(min-width:760px){.current{grid-template-columns:1fr 1fr!important}.metric-grid{grid-template-columns:repeat(4,1fr)!important}}

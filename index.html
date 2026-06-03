@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#07150d">
-  <title>Expeditionstagebuch Core 1</title>
+  <title>Expeditionstagebuch Core 1.1</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -13,7 +13,7 @@
 <header>
   <button class="icon">☰</button>
   <div>
-    <h1>Expeditionstagebuch Core 1</h1>
+    <h1>Expeditionstagebuch Core 1.1</h1>
     <p id="activeTripSub">Aktive Expedition</p>
   </div>
   <button id="installBtn" hidden>Installieren</button>
@@ -78,6 +78,7 @@
     <section class="card">
       <h2>Meine Expeditionen</h2>
       <button id="newTripBtn">Neue Expedition</button>
+      <button id="cleanDemoBtn" class="danger">Beispieldaten entfernen</button>
       <button id="exportAllBtn" class="secondary">Backup exportieren</button>
       <label class="import">Backup importieren<input id="importAllInput" type="file" accept="application/json"></label>
       <div id="tripList"></div>
@@ -110,6 +111,9 @@
       <button id="addPoiBtn">POI hinzufügen</button>
       <div id="poiEditor" hidden></div>
       <div id="poiList"></div>
+      <h2>Reisechronik</h2>
+      <button id="addJournalBtn" class="secondary">Chronik-Eintrag hinzufügen</button>
+      <div id="journalList"></div>
     </section>
   </section>
 

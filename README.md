@@ -23,3 +23,13 @@ Diese Dateien ins GitHub Pages Repository legen:
 - manifest.webmanifest
 - sw.js
 - README.md
+
+## Core 1.1
+- Beispieldaten können entfernt werden
+- POIs löschen
+- Ausgaben löschen
+- Chronik-Einträge löschen
+- Expeditionen löschen
+- POIs hinzufügen
+- Chronik-Einträge hinzufügen
+- Dashboard kompakter auf Mobilgeräten

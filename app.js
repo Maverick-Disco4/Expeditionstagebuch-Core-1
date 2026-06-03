@@ -86,3 +86,179 @@ function estimateKm(pts){let s=0;for(let i=1;i<pts.length;i++)s+=dist(pts[i-1],p
 async function registerSW(){if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js")}
 let deferredPrompt;window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredPrompt=e;$("installBtn").hidden=false});$("installBtn").onclick=async()=>{if(deferredPrompt){deferredPrompt.prompt();deferredPrompt=null;$("installBtn").hidden=true}}
 init();
+
+
+/* ===== Core 1.1: delete/edit basics and demo cleanup ===== */
+function core11SaveAndRender(){
+  save();
+  renderAll();
+}
+
+function isDemoPoi(p){
+  return ["poi-1","poi-2"].includes(p.id) || ["Kajaktour Tarn","Stellplatz St. Chély"].includes(p.name);
+}
+function isDemoExpense(e){
+  return ["exp-1","exp-2"].includes(e.id);
+}
+function isDemoJournal(j){
+  return ["j-1"].includes(j.id);
+}
+
+function removeDemoData(){
+  if(!confirm("Beispieldaten aus der aktiven Expedition entfernen? Eigene Daten bleiben erhalten.")) return;
+  activeTrip.pois = (activeTrip.pois || []).filter(p => !isDemoPoi(p));
+  activeTrip.expenses = (activeTrip.expenses || []).filter(e => !isDemoExpense(e));
+  activeTrip.journal = (activeTrip.journal || []).filter(j => !isDemoJournal(j));
+  core11SaveAndRender();
+  alert("Beispieldaten entfernt.");
+}
+
+window.deletePoi = function(id){
+  if(!confirm("POI wirklich löschen?")) return;
+  activeTrip.pois = (activeTrip.pois || []).filter(p => p.id !== id);
+  core11SaveAndRender();
+};
+
+window.deleteExpense = function(id){
+  if(!confirm("Ausgabe wirklich löschen?")) return;
+  activeTrip.expenses = (activeTrip.expenses || []).filter(e => e.id !== id);
+  core11SaveAndRender();
+};
+
+window.deleteJournal = function(id){
+  if(!confirm("Chronik-Eintrag wirklich löschen?")) return;
+  activeTrip.journal = (activeTrip.journal || []).filter(j => j.id !== id);
+  core11SaveAndRender();
+};
+
+window.deleteTrip = function(id){
+  if(db.trips.length <= 1){
+    alert("Mindestens eine Expedition muss bestehen bleiben.");
+    return;
+  }
+  if(!confirm("Diese Expedition wirklich löschen?")) return;
+  db.trips = db.trips.filter(t => t.id !== id);
+  if(db.activeTripId === id){
+    db.activeTripId = db.trips[0].id;
+    activeTrip = db.trips[0];
+  }
+  core11SaveAndRender();
+};
+
+window.addPoiCore11 = function(){
+  const name = prompt("Name des POI?");
+  if(!name) return;
+  const category = prompt("Kategorie? z. B. Camping, Aussicht, Kajak, Diesel", "Camping") || "Sonstiges";
+  const note = prompt("Notiz?", "") || "";
+  activeTrip.pois.push({
+    id:"poi-"+Date.now(),
+    name,
+    category,
+    rating:0,
+    date:todayISO(),
+    lat:0,
+    lon:0,
+    note,
+    photos:[]
+  });
+  core11SaveAndRender();
+};
+
+window.addJournalCore11 = function(){
+  const title = prompt("Titel des Chronik-Eintrags?");
+  if(!title) return;
+  const text = prompt("Text / Notiz?", "") || "";
+  activeTrip.journal.push({
+    id:"j-"+Date.now(),
+    date:todayISO(),
+    title,
+    text,
+    photos:[]
+  });
+  core11SaveAndRender();
+};
+
+// Override render functions with delete buttons
+renderTrips = function(){
+  $("tripList").innerHTML = db.trips.map(t => `
+    <div class="item">
+      <strong>${t.name}</strong><br>${t.subtitle || ""}
+      <div class="item-actions">
+        <button class="secondary" onclick="selectTrip('${t.id}')">Öffnen</button>
+        <button class="danger" onclick="deleteTrip('${t.id}')">Löschen</button>
+      </div>
+    </div>
+  `).join("");
+};
+
+renderJournal = function(){
+  $("poiList").innerHTML = (activeTrip.pois || []).map(p => `
+    <div class="item">
+      <strong>${p.name}</strong><br>
+      ${p.category} · <span class="stars">${"★".repeat(p.rating || 0)}${"☆".repeat(5-(p.rating || 0))}</span>
+      <p>${p.note || ""}</p>
+      <div class="item-actions">
+        <button class="danger" onclick="deletePoi('${p.id}')">POI löschen</button>
+      </div>
+    </div>
+  `).join("") || "<p>Noch keine POIs.</p>";
+
+  const jl = document.getElementById("journalList");
+  if(jl){
+    jl.innerHTML = (activeTrip.journal || []).slice().reverse().map(j => `
+      <div class="item">
+        <strong>${j.date} · ${j.title}</strong>
+        <p>${j.text || ""}</p>
+        <div class="item-actions">
+          <button class="danger" onclick="deleteJournal('${j.id}')">Eintrag löschen</button>
+        </div>
+      </div>
+    `).join("") || "<p>Noch keine Chronik-Einträge.</p>";
+  }
+};
+
+renderCash = function(){
+  $("expenseList").innerHTML = (activeTrip.expenses || []).slice().reverse().map(e => `
+    <div class="item">
+      <strong>${e.category}</strong><span style="float:right">${money(e.amount)}</span><br>
+      ${e.date} · ${e.note || ""}
+      <div class="item-actions">
+        <button class="danger" onclick="deleteExpense('${e.id}')">Ausgabe löschen</button>
+      </div>
+    </div>
+  `).join("") || "<p>Noch keine Ausgaben.</p>";
+};
+
+const oldSetupFormsCore11 = setupForms;
+setupForms = function(){
+  oldSetupFormsCore11();
+
+  const clean = document.getElementById("cleanDemoBtn");
+  if(clean && !clean.__core11){
+    clean.__core11 = true;
+    clean.onclick = removeDemoData;
+  }
+
+  const addPoi = document.getElementById("addPoiBtn");
+  if(addPoi && !addPoi.__core11){
+    addPoi.__core11 = true;
+    addPoi.onclick = addPoiCore11;
+  }
+
+  const addJournal = document.getElementById("addJournalBtn");
+  if(addJournal && !addJournal.__core11){
+    addJournal.__core11 = true;
+    addJournal.onclick = addJournalCore11;
+  }
+};
+
+// Core 1.1 post-init
+setTimeout(() => {
+  const clean = document.getElementById("cleanDemoBtn");
+  if(clean) clean.onclick = removeDemoData;
+  const addPoi = document.getElementById("addPoiBtn");
+  if(addPoi) addPoi.onclick = addPoiCore11;
+  const addJournal = document.getElementById("addJournalBtn");
+  if(addJournal) addJournal.onclick = addJournalCore11;
+  renderAll();
+}, 800);
