@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#07150d">
+  <title>Expeditionstagebuch Core 1</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+</head>
+<body>
+<header>
+  <button class="icon">☰</button>
+  <div>
+    <h1>Expeditionstagebuch Core 1</h1>
+    <p id="activeTripSub">Aktive Expedition</p>
+  </div>
+  <button id="installBtn" hidden>Installieren</button>
+</header>
+
+<main>
+  <section id="dashboard" class="view active">
+    <section class="hero card">
+      <div class="hero-shade">
+        <span class="kicker">AKTIVE EXPEDITION</span>
+        <h2 id="dashTripName">Frankreich 2026</h2>
+        <p id="dashTripMeta">Roadtrip · Dachzelt · Kajak</p>
+        <div class="progress"><span id="tripProgressBar"></span></div>
+        <div class="hero-stats">
+          <div><strong id="statDays">0 / 0</strong><small>Tage</small></div>
+          <div><strong id="statKm">0 km</strong><small>gefahren</small></div>
+          <div><strong id="statTime">0:00 h</strong><small>Fahrzeit</small></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="current card">
+      <div>
+        <span class="kicker">AKTUELLE ETAPPE</span>
+        <h2 id="currentLegTitle">–</h2>
+        <p id="currentLegMeta">–</p>
+        <button onclick="showView('planning')">Etappe öffnen</button>
+      </div>
+      <div id="miniMap"></div>
+    </section>
+
+    <section class="overview card">
+      <h3>Reiseübersicht</h3>
+      <div class="metric-grid">
+        <div>📍<strong id="countPois">0</strong><small>POIs</small></div>
+        <div>📷<strong id="countPhotos">0</strong><small>Fotos</small></div>
+        <div>💶<strong id="sumExpenses">0 €</strong><small>Ausgaben</small></div>
+        <div>🏕<strong id="countNights">0</strong><small>Nächte</small></div>
+      </div>
+    </section>
+
+    <section class="split">
+      <div class="card">
+        <h3>Reisekasse</h3>
+        <div id="expenseSummary"></div>
+        <button onclick="showView('cash')">Kasse öffnen</button>
+      </div>
+      <div class="card">
+        <h3>Letzte POIs</h3>
+        <div id="latestPois"></div>
+        <button onclick="showView('journal')">Journal öffnen</button>
+      </div>
+    </section>
+
+    <section class="card chronicle">
+      <h3>Reisechronik – neuester Eintrag</h3>
+      <div id="latestJournal"></div>
+    </section>
+  </section>
+
+  <section id="trips" class="view">
+    <section class="card">
+      <h2>Meine Expeditionen</h2>
+      <button id="newTripBtn">Neue Expedition</button>
+      <button id="exportAllBtn" class="secondary">Backup exportieren</button>
+      <label class="import">Backup importieren<input id="importAllInput" type="file" accept="application/json"></label>
+      <div id="tripList"></div>
+    </section>
+  </section>
+
+  <section id="planning" class="view">
+    <section class="card">
+      <h2>Planung</h2>
+      <button id="addLegBtn">Etappe hinzufügen</button>
+      <button id="exportTripBtn" class="secondary">Trip exportieren</button>
+      <div id="legEditor" hidden></div>
+      <div id="legList"></div>
+    </section>
+  </section>
+
+  <section id="mapView" class="view">
+    <section class="map-tools card">
+      <button id="startGpsBtn">GPS starten</button>
+      <button id="pauseGpsBtn" class="secondary">Pausieren</button>
+      <button id="finishTrackBtn" class="secondary">Track speichern</button>
+      <span id="wakeStatus">Display: bereit</span>
+    </section>
+    <section id="map"></section>
+  </section>
+
+  <section id="journal" class="view">
+    <section class="card">
+      <h2>Journal & POIs</h2>
+      <button id="addPoiBtn">POI hinzufügen</button>
+      <div id="poiEditor" hidden></div>
+      <div id="poiList"></div>
+    </section>
+  </section>
+
+  <section id="cash" class="view">
+    <section class="card">
+      <h2>Reisekasse</h2>
+      <form id="expenseForm" class="form-grid">
+        <input id="expenseAmount" type="number" step="0.01" placeholder="Betrag">
+        <select id="expenseCategory">
+          <option>Diesel</option><option>Camping</option><option>Lebensmittel</option><option>Restaurant</option><option>Aktivität</option><option>Sonstiges</option>
+        </select>
+        <input id="expenseNote" placeholder="Notiz">
+        <button>Ausgabe speichern</button>
+      </form>
+      <div id="expenseList"></div>
+    </section>
+  </section>
+</main>
+
+<nav>
+  <button class="active" data-view="dashboard">⌂<small>Dashboard</small></button>
+  <button data-view="trips">🚙<small>Trips</small></button>
+  <button data-view="planning">☷<small>Planung</small></button>
+  <button class="plus" id="quickAddBtn">＋</button>
+  <button data-view="mapView">▰<small>Karte</small></button>
+  <button data-view="journal">◆<small>Journal</small></button>
+  <button data-view="cash">▤<small>Kasse</small></button>
+</nav>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
