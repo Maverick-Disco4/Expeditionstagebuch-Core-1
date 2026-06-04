@@ -1,5 +1,5 @@
 {
-  "appName": "Expeditionstagebuch Core 1.2",
+  "appName": "Expeditionstagebuch Core 1.5",
   "activeTripId": "frankreich-2026",
   "trips": [
     {
@@ -23,7 +23,11 @@
           "lat": 47.466,
           "lon": 3.747,
           "overnight": "Lac des Settons / Morvan",
-          "notes": "Lange Anreise, erster Frankreich-Abend."
+          "notes": "Lange Anreise, erster Frankreich-Abend.",
+          "fromLat": 53.183,
+          "fromLon": 8.0,
+          "toLat": 47.466,
+          "toLon": 3.747
         },
         {
           "id": "leg-02",
@@ -36,7 +40,11 @@
           "lat": 47.413,
           "lon": 0.982,
           "overnight": "Loire / Cher bei Amboise",
-          "notes": "Loire-Ankunft und Schlösserbasis."
+          "notes": "Loire-Ankunft und Schlösserbasis.",
+          "fromLat": 47.466,
+          "fromLon": 3.747,
+          "toLat": 47.413,
+          "toLon": 0.982
         },
         {
           "id": "leg-03",
@@ -49,7 +57,11 @@
           "lat": 47.413,
           "lon": 0.982,
           "overnight": "Amboise / Bléré",
-          "notes": "Schlösser und Kajakoption."
+          "notes": "Schlösser und Kajakoption.",
+          "fromLat": 47.413,
+          "fromLon": 0.982,
+          "toLat": 47.413,
+          "toLon": 0.982
         },
         {
           "id": "leg-04",
@@ -62,7 +74,11 @@
           "lat": 45.067,
           "lon": 4.833,
           "overnight": "Tournon / Rhône",
-          "notes": "Verbindungsetappe nach Süden."
+          "notes": "Verbindungsetappe nach Süden.",
+          "fromLat": 47.413,
+          "fromLon": 0.982,
+          "toLat": 45.067,
+          "toLon": 4.833
         },
         {
           "id": "leg-05",
@@ -75,7 +91,11 @@
           "lat": 43.206,
           "lon": 6.567,
           "overnight": "Ferienwohnung",
-          "notes": "Ankunft Ferienwohnung."
+          "notes": "Ankunft Ferienwohnung.",
+          "fromLat": 45.067,
+          "fromLon": 4.833,
+          "toLat": 43.206,
+          "toLon": 6.567
         },
         {
           "id": "leg-06",
@@ -88,7 +108,11 @@
           "lat": 43.846,
           "lon": 6.221,
           "overnight": "Moustiers / Lac de Sainte-Croix",
-          "notes": "Provence-Stopp."
+          "notes": "Provence-Stopp.",
+          "fromLat": 43.206,
+          "fromLon": 6.567,
+          "toLat": 43.846,
+          "toLon": 6.221
         },
         {
           "id": "leg-07",
@@ -101,7 +125,11 @@
           "lat": 45.571,
           "lon": 2.897,
           "overnight": "Lac Chambon / Murol",
-          "notes": "Vulkanland und See."
+          "notes": "Vulkanland und See.",
+          "fromLat": 43.846,
+          "fromLon": 6.221,
+          "toLat": 45.571,
+          "toLon": 2.897
         },
         {
           "id": "leg-08",
@@ -114,7 +142,11 @@
           "lat": 44.365,
           "lon": 3.412,
           "overnight": "Gorges du Tarn",
-          "notes": "Schlucht und Kajak."
+          "notes": "Schlucht und Kajak.",
+          "fromLat": 45.571,
+          "fromLon": 2.897,
+          "toLat": 44.365,
+          "toLon": 3.412
         },
         {
           "id": "leg-09",
@@ -127,7 +159,11 @@
           "lat": 44.465,
           "lon": 1.671,
           "overnight": "Lot / Bouziès",
-          "notes": "Lot-Tal."
+          "notes": "Lot-Tal.",
+          "fromLat": 44.365,
+          "fromLon": 3.412,
+          "toLat": 44.465,
+          "toLon": 1.671
         },
         {
           "id": "leg-10",
@@ -140,7 +176,11 @@
           "lat": 44.89,
           "lon": 1.216,
           "overnight": "Dordogne / Sarlat",
-          "notes": "Burgen und Dordogne-Kajak."
+          "notes": "Burgen und Dordogne-Kajak.",
+          "fromLat": 44.465,
+          "fromLon": 1.671,
+          "toLat": 44.89,
+          "toLon": 1.216
         },
         {
           "id": "leg-11",
@@ -153,7 +193,11 @@
           "lat": 48.379,
           "lon": 0.57,
           "overnight": "Perche / Bellême",
-          "notes": "Richtung Norden."
+          "notes": "Richtung Norden.",
+          "fromLat": 44.89,
+          "fromLon": 1.216,
+          "toLat": 48.379,
+          "toLon": 0.57
         },
         {
           "id": "leg-12",
@@ -166,7 +210,11 @@
           "lat": 53.183,
           "lon": 8.0,
           "overnight": "Zuhause",
-          "notes": "Heimfahrt."
+          "notes": "Heimfahrt.",
+          "fromLat": 48.379,
+          "fromLon": 0.57,
+          "toLat": 53.183,
+          "toLon": 8.0
         }
       ],
       "pois": [],

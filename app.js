@@ -26,6 +26,26 @@ async function init(){
 function normalizeTrip(t){
   t.legs ||= []; t.pois ||= []; t.expenses ||= []; t.tracks ||= []; t.journal ||= [];
   t.routeMode ||= "osrm"; t.orsApiKey ||= "";
+  normalizeLegModel(t);
+}
+function normalizeLegModel(t){
+  t.legs.forEach((l, idx) => {
+    if(l.fromLat === undefined || l.fromLon === undefined){
+      if(idx === 0){ l.fromLat = 53.183; l.fromLon = 8.000; }
+      else {
+        const prev = t.legs[idx-1];
+        l.fromLat = Number(prev.toLat ?? prev.lat ?? 0);
+        l.fromLon = Number(prev.toLon ?? prev.lon ?? 0);
+      }
+    }
+    if(l.toLat === undefined || l.toLon === undefined){
+      l.toLat = Number(l.lat || 0);
+      l.toLon = Number(l.lon || 0);
+    }
+    l.fromLat = Number(l.fromLat || 0); l.fromLon = Number(l.fromLon || 0);
+    l.toLat = Number(l.toLat || 0); l.toLon = Number(l.toLon || 0);
+    l.lat = l.toLat; l.lon = l.toLon;
+  });
 }
 function showView(id){
   document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id===id));
@@ -111,21 +131,23 @@ function renderPlanning(){
 
 const legMiniMaps = {};
 function legRouteCacheKey(id){
-  const i=activeTrip.legs.findIndex(l=>l.id===id);
-  if(i<0 || i>=activeTrip.legs.length-1) return null;
-  const a=activeTrip.legs[i], b=activeTrip.legs[i+1];
-  return `expedition-core1-3-legroute:${activeTrip.id}:${activeTrip.routeMode||"osrm"}:${id}:${Number(a.lat).toFixed(5)},${Number(a.lon).toFixed(5)}:${Number(b.lat).toFixed(5)},${Number(b.lon).toFixed(5)}`;
+  const leg = activeTrip.legs.find(l=>l.id===id);
+  if(!leg) return null;
+  return `expedition-core1-5-legroute:${activeTrip.id}:${activeTrip.routeMode||"osrm"}:${id}:${Number(leg.fromLat).toFixed(5)},${Number(leg.fromLon).toFixed(5)}:${Number(leg.toLat).toFixed(5)},${Number(leg.toLon).toFixed(5)}`;
 }
-function nextLegPair(id){
+function legPair(id){
   const i=activeTrip.legs.findIndex(l=>l.id===id);
   if(i<0) return null;
-  return {i,a:activeTrip.legs[i],b:activeTrip.legs[i+1]||null};
+  const l=activeTrip.legs[i];
+  return {i,a:{lat:Number(l.fromLat),lon:Number(l.fromLon),title:l.from||"Start"},b:{lat:Number(l.toLat),lon:Number(l.toLon),title:l.to||"Ziel"},leg:l};
 }
+function nextLegPair(id){ return legPair(id); }
 function initLegMiniMaps(){
   activeTrip.legs.forEach(leg=>{
     const el=document.getElementById(`legMap-${leg.id}`);
     if(!el || legMiniMaps[leg.id]) return;
-    const m=L.map(el,{zoomControl:false,attributionControl:false}).setView([leg.lat||46,leg.lon||3],8);
+    const startLat=Number(leg.fromLat||leg.toLat||46), startLon=Number(leg.fromLon||leg.toLon||3);
+    const m=L.map(el,{zoomControl:false,attributionControl:false}).setView([startLat,startLon],8);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(m);
     legMiniMaps[leg.id]=m;
     drawLegMiniRoute(leg.id);
@@ -136,27 +158,25 @@ function clearMiniMap(m){
   m.eachLayer(layer=>{if(layer instanceof L.Marker || layer instanceof L.Polyline)m.removeLayer(layer);});
 }
 function drawLegMiniRoute(id){
-  const pair=nextLegPair(id), m=legMiniMaps[id];
+  const pair=legPair(id), m=legMiniMaps[id];
   if(!pair||!m) return;
   clearMiniMap(m);
   const {a,b}=pair;
-  if(!Number(a.lat)||!Number(a.lon)) return;
+  if(!Number(a.lat)||!Number(a.lon)||!Number(b.lat)||!Number(b.lon)) return;
   L.marker([a.lat,a.lon]).addTo(m).bindPopup(a.title||"Start");
-  if(b&&Number(b.lat)&&Number(b.lon)){
-    L.marker([b.lat,b.lon]).addTo(m).bindPopup(b.title||"Ziel");
-    const cached=localStorage.getItem(legRouteCacheKey(id));
-    if(cached){
-      try{
-        const payload=JSON.parse(cached);
-        const line=L.polyline(payload.coords.map(c=>[c[1],c[0]]),{color:"#4e9cff",weight:4}).addTo(m);
-        m.fitBounds(line.getBounds(),{padding:[12,12]});
-        updateLegRouteMeta(id,payload);
-        return;
-      }catch(e){}
-    }
-    const line=L.polyline([[a.lat,a.lon],[b.lat,b.lon]],{color:"#4e9cff",weight:3,opacity:.55,dashArray:"6 6"}).addTo(m);
-    m.fitBounds(line.getBounds(),{padding:[12,12]});
-  } else m.setView([a.lat,a.lon],10);
+  L.marker([b.lat,b.lon]).addTo(m).bindPopup(b.title||"Ziel");
+  const cached=localStorage.getItem(legRouteCacheKey(id));
+  if(cached){
+    try{
+      const payload=JSON.parse(cached);
+      const line=L.polyline(payload.coords.map(c=>[c[1],c[0]]),{color:"#4e9cff",weight:4}).addTo(m);
+      m.fitBounds(line.getBounds(),{padding:[12,12]});
+      updateLegRouteMeta(id,payload);
+      return;
+    }catch(e){}
+  }
+  const line=L.polyline([[a.lat,a.lon],[b.lat,b.lon]],{color:"#4e9cff",weight:3,opacity:.55,dashArray:"6 6"}).addTo(m);
+  m.fitBounds(line.getBounds(),{padding:[12,12]});
 }
 function updateLegRouteMeta(id,payload){
   const km=document.getElementById(`legKm-${id}`);
@@ -165,18 +185,18 @@ function updateLegRouteMeta(id,payload){
   if(time){const h=Math.floor(payload.durationS/3600), mi=Math.round((payload.durationS%3600)/60);time.textContent=`${h}:${String(mi).padStart(2,"0")} h`;}
 }
 async function buildLegRoute(id, force=false){
-  const pair=nextLegPair(id);
-  if(!pair||!pair.b){alert("Für die letzte Etappe gibt es keinen nächsten Zielpunkt.");return;}
-  const {a,b}=pair, key=legRouteCacheKey(id);
+  const pair=legPair(id);
+  if(!pair){alert("Etappe nicht gefunden.");return;}
+  const {a,b,leg}=pair, key=legRouteCacheKey(id);
   if(!force&&key&&localStorage.getItem(key)){drawLegMiniRoute(id);return;}
   if((activeTrip.routeMode||"osrm")==="ors-avoid"&&!activeTrip.orsApiKey){alert("Für 'ohne Autobahn' bitte in der Kartenansicht einen OpenRouteService API-Key eintragen.");return;}
   try{
-    const res=(activeTrip.routeMode||"osrm")==="ors-avoid" ? await fetchOrs({lat:a.lat,lon:a.lon},{lat:b.lat,lon:b.lon}) : await fetchOsrm({lat:a.lat,lon:a.lon},{lat:b.lat,lon:b.lon});
+    const res=(activeTrip.routeMode||"osrm")==="ors-avoid" ? await fetchOrs(a,b) : await fetchOsrm(a,b);
     const payload={coords:res.coords,distanceM:res.distanceM,durationS:res.durationS,createdAt:new Date().toISOString()};
     localStorage.setItem(key,JSON.stringify(payload));
-    a.routeKm=res.distanceM/1000;
+    leg.routeKm=res.distanceM/1000;
     const h=Math.floor(res.durationS/3600), mi=Math.round((res.durationS%3600)/60);
-    a.routeTime=`${h}:${String(mi).padStart(2,"0")} h`;
+    leg.routeTime=`${h}:${String(mi).padStart(2,"0")} h`;
     save();
     drawLegMiniRoute(id);
     updateLegRouteMeta(id,payload);
@@ -187,15 +207,13 @@ function openLegInMap(id){
   showView("mapView");
   setTimeout(()=>{
     initMap();
-    const pair=nextLegPair(id);
+    const pair=legPair(id);
     if(!pair||!map)return;
     const {a,b}=pair;
-    if(b&&Number(a.lat)&&Number(a.lon)&&Number(b.lat)&&Number(b.lon)) map.fitBounds([[a.lat,a.lon],[b.lat,b.lon]],{padding:[40,40]});
-    else if(Number(a.lat)&&Number(a.lon)) map.setView([a.lat,a.lon],11);
+    if(Number(a.lat)&&Number(a.lon)&&Number(b.lat)&&Number(b.lon)) map.fitBounds([[a.lat,a.lon],[b.lat,b.lon]],{padding:[40,40]});
   },250);
 }
-function clearLegRouteCaches(){Object.keys(localStorage).filter(k=>k.startsWith("expedition-core1-3-legroute:")).forEach(k=>localStorage.removeItem(k));}
-
+function clearLegRouteCaches(){Object.keys(localStorage).filter(k=>k.startsWith("expedition-core1-5-legroute:")||k.startsWith("expedition-core1-3-legroute:")).forEach(k=>localStorage.removeItem(k));}
 function setupLegDragDrop(){
   const items = document.querySelectorAll("#legList [data-leg-id]");
   let dragId = null;
@@ -221,17 +239,25 @@ window.editLeg=id=>{
   e.hidden=false; e.className="editor";
   e.innerHTML=`<h3>Etappe bearbeiten</h3>
     <input id="le-title" value="${escapeHtml(l.title)}" placeholder="Titel">
-    <div class="two"><input id="le-date" value="${escapeHtml(l.date)}" placeholder="Datum"><input id="le-km" type="number" value="${Number(l.plannedKm||0)}" placeholder="km"></div>
-    <div class="two"><input id="le-from" value="${escapeHtml(l.from)}" placeholder="Von"><input id="le-to" value="${escapeHtml(l.to)}" placeholder="Ziel"></div>
-    <div class="two"><input id="le-time" value="${escapeHtml(l.plannedTime||"")}" placeholder="Fahrtzeit"><input id="le-overnight" value="${escapeHtml(l.overnight||"")}" placeholder="Übernachtung"></div>
-    <div class="two"><input id="le-lat" type="number" step="0.000001" value="${Number(l.lat||0)}" placeholder="Breitengrad"><input id="le-lon" type="number" step="0.000001" value="${Number(l.lon||0)}" placeholder="Längengrad"></div>
+    <div class="two"><input id="le-date" value="${escapeHtml(l.date)}" placeholder="Datum"><input id="le-km" type="number" value="${Number(l.plannedKm||0)}" placeholder="Plan-km"></div>
+    <div class="two"><input id="le-from" value="${escapeHtml(l.from)}" placeholder="Start"><input id="le-to" value="${escapeHtml(l.to)}" placeholder="Ziel"></div>
+    <div class="two"><input id="le-fromLat" type="number" step="0.000001" value="${Number(l.fromLat||0)}" placeholder="Start Breitengrad"><input id="le-fromLon" type="number" step="0.000001" value="${Number(l.fromLon||0)}" placeholder="Start Längengrad"></div>
+    <div class="two"><input id="le-toLat" type="number" step="0.000001" value="${Number(l.toLat||0)}" placeholder="Ziel Breitengrad"><input id="le-toLon" type="number" step="0.000001" value="${Number(l.toLon||0)}" placeholder="Ziel Längengrad"></div>
+    <div class="two"><input id="le-time" value="${escapeHtml(l.plannedTime||"")}" placeholder="Planzeit"><input id="le-overnight" value="${escapeHtml(l.overnight||"")}" placeholder="Übernachtung"></div>
     <textarea id="le-notes" placeholder="Notizen">${escapeHtml(l.notes||"")}</textarea>
     <div class="action-row"><button onclick="saveLeg('${id}')">Etappe speichern</button><button class="secondary" onclick="$('legEditor').hidden=true">Abbrechen</button></div>`;
   e.scrollIntoView({behavior:"smooth", block:"start"});
 };
 window.saveLeg=id=>{
   const l=activeTrip.legs.find(x=>x.id===id);
-  Object.assign(l,{title:$("le-title").value,date:$("le-date").value,plannedKm:Number($("le-km").value||0),from:$("le-from").value,to:$("le-to").value,plannedTime:$("le-time").value,overnight:$("le-overnight").value,lat:Number($("le-lat").value||0),lon:Number($("le-lon").value||0),notes:$("le-notes").value});
+  Object.assign(l,{
+    title:$("le-title").value,date:$("le-date").value,plannedKm:Number($("le-km").value||0),
+    from:$("le-from").value,to:$("le-to").value,plannedTime:$("le-time").value,overnight:$("le-overnight").value,
+    fromLat:Number($("le-fromLat").value||0),fromLon:Number($("le-fromLon").value||0),
+    toLat:Number($("le-toLat").value||0),toLon:Number($("le-toLon").value||0),
+    lat:Number($("le-toLat").value||0),lon:Number($("le-toLon").value||0),notes:$("le-notes").value
+  });
+  delete l.routeKm; delete l.routeTime;
   clearLegRouteCaches(); save(); $("legEditor").hidden=true; renderAll(); resetMaps();
 };
 window.moveLeg=(id,d)=>{const a=activeTrip.legs,i=a.findIndex(l=>l.id===id),j=i+d;if(i<0||j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];save();renderPlanning();resetMaps();};
@@ -250,7 +276,7 @@ function renderCash(){
 window.deleteExpense=id=>{if(!confirm("Ausgabe löschen?"))return;activeTrip.expenses=activeTrip.expenses.filter(e=>e.id!==id);save();renderAll();};
 
 function setupForms(){
-  $("addLegBtn").onclick=()=>{const prev=activeTrip.legs.at(-1)||{};const l={id:"leg-"+Date.now(),date:"",title:"Neue Etappe",from:prev.to||"",to:"Neues Ziel",plannedKm:0,plannedTime:"",lat:Number(prev.lat||0),lon:Number(prev.lon||0),overnight:"",notes:""};activeTrip.legs.push(l);save();renderPlanning();editLeg(l.id);};
+  $("addLegBtn").onclick=()=>{const prev=activeTrip.legs.at(-1)||{};const l={id:"leg-"+Date.now(),date:"",title:"Neue Etappe",from:prev.to||"",to:"Neues Ziel",plannedKm:0,plannedTime:"",fromLat:Number(prev.toLat||prev.lat||0),fromLon:Number(prev.toLon||prev.lon||0),toLat:Number(prev.toLat||prev.lat||0),toLon:Number(prev.toLon||prev.lon||0),lat:Number(prev.toLat||prev.lat||0),lon:Number(prev.toLon||prev.lon||0),overnight:"",notes:""};activeTrip.legs.push(l);save();renderPlanning();editLeg(l.id);};
   $("expenseForm").onsubmit=e=>{e.preventDefault();activeTrip.expenses.push({id:"exp-"+Date.now(),date:todayISO(),category:$("expenseCategory").value,amount:Number($("expenseAmount").value||0),note:$("expenseNote").value});save();e.target.reset();renderAll();};
   $("newTripBtn").onclick=()=>{const name=prompt("Name der Expedition?");if(!name)return;const t={id:"trip-"+Date.now(),name,subtitle:"Neue Expedition",startDate:todayISO(),endDate:todayISO(),routeMode:"osrm",orsApiKey:"",legs:[],pois:[],expenses:[],tracks:[],journal:[]};db.trips.push(t);db.activeTripId=t.id;activeTrip=t;save();resetMaps();renderAll();showView("dashboard");};
   $("exportAllBtn").onclick=()=>downloadJSON(db,"expeditionstagebuch-core1-backup.json");
@@ -270,7 +296,18 @@ function importJSON(file,cb){if(!file)return;const r=new FileReader();r.onload=(
 function resetMaps(){miniMap=null;map=null;plannedLayer=null;drivenLayer=null;liveLayer=null;liveMarker=null;Object.keys(legMiniMaps).forEach(k=>delete legMiniMaps[k]);$("miniMap").innerHTML="";$("map").innerHTML="";}
 function initMiniMap(){if(miniMap)return;miniMap=L.map("miniMap",{zoomControl:false,attributionControl:false}).setView([46,3],5);L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(miniMap);drawStraightRoute(miniMap);}
 function initMap(){if(map){map.invalidateSize();return;}map=L.map("map").setView([46,3],5);L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(map);$("routeMode").value=activeTrip.routeMode||"osrm";$("orsApiKey").value=activeTrip.orsApiKey||"";drawStraightRoute(map);drawTracks(map);setTimeout(()=>buildRoadRoute(false),200);}
-function routePoints(){return activeTrip.legs.map(l=>({lat:Number(l.lat),lon:Number(l.lon),title:l.title})).filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lon)&&p.lat&&p.lon);}
+function routePoints(){
+  const pts=[];
+  if(activeTrip.legs.length){
+    const first=activeTrip.legs[0];
+    if(Number(first.fromLat)&&Number(first.fromLon)) pts.push({lat:Number(first.fromLat),lon:Number(first.fromLon),title:first.from||"Start"});
+  }
+  activeTrip.legs.forEach(l=>{
+    const lat=Number(l.toLat ?? l.lat), lon=Number(l.toLon ?? l.lon);
+    if(Number.isFinite(lat)&&Number.isFinite(lon)&&lat&&lon) pts.push({lat,lon,title:l.to||l.title});
+  });
+  return pts;
+}
 function drawStraightRoute(m){const pts=routePoints().map(p=>[p.lat,p.lon]);if(!pts.length)return;const line=L.polyline(pts,{color:"#4e9cff",weight:4,opacity:.65,dashArray:"6 6"}).addTo(m);routePoints().forEach((p,i)=>L.marker([p.lat,p.lon]).addTo(m).bindPopup(`${i+1}. ${escapeHtml(p.title)}`));try{m.fitBounds(line.getBounds(),{padding:[20,20]});}catch(e){}}
 function drawTracks(m){activeTrip.tracks.forEach(t=>{if(t.points?.length)L.polyline(t.points.map(p=>[p.lat,p.lon]),{color:"#22b83f",weight:5}).addTo(m);});}
 function routeCacheKey(){return ROUTE_CACHE_PREFIX+activeTrip.id+":"+activeTrip.routeMode+":"+activeTrip.legs.map(l=>`${Number(l.lat).toFixed(5)},${Number(l.lon).toFixed(5)}`).join("|");}

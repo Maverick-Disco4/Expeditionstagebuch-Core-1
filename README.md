@@ -40,3 +40,11 @@ Saubere PWA-Version für mehrere Expeditionen.
 - Nach Drehen des Smartphones werden alle Leaflet-Karten neu gerendert.
 - Routen werden nach Rotation wieder passend zentriert.
 - Start/Ziel beziehungsweise Straßenroute bleiben im sichtbaren Bereich.
+
+## Core 1.5 – Korrektes Etappenmodell
+- Jede Etappe hat eigenen Start und eigenes Ziel.
+- Jede Etappe hat eigene Start- und Zielkoordinaten.
+- Minikarten berechnen jetzt die Route der jeweiligen Etappe, nicht mehr die Verbindung zum nächsten Etappenziel.
+- Bad Zwischenahn → Morvan wird nun als eigene Route berechnet.
+- Große Expeditionskarte nutzt Startpunkt der ersten Etappe plus Zielpunkte aller Etappen.
+- Alte Daten werden beim Laden automatisch in das neue Modell überführt.

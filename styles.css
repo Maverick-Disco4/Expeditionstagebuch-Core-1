@@ -103,3 +103,9 @@ input,select,textarea{width:100%;padding:12px;border-radius:12px;border:1px soli
   #map{height:calc(100vh - 120px);min-height:260px}
   .hero{min-height:180px}
 }
+
+/* Core 1.5 proper leg model */
+.leg-point-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0;color:var(--muted)}
+.leg-point-grid div{background:#102219;border:1px solid var(--line);border-radius:12px;padding:9px}
+.leg-point-grid strong{display:block;color:var(--text);font-size:13px}
+@media(max-width:760px){.leg-point-grid{grid-template-columns:1fr}}
