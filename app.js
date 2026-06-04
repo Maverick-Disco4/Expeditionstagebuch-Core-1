@@ -79,14 +79,26 @@ function renderTrips(){
 window.selectTrip=id=>{db.activeTripId=id;activeTrip=db.trips.find(t=>t.id===id);normalizeTrip(activeTrip);save();resetMaps();renderAll();showView("dashboard")};
 window.deleteTrip=id=>{if(db.trips.length<=1)return alert("Mindestens eine Expedition muss bestehen bleiben.");if(!confirm("Expedition löschen?"))return;db.trips=db.trips.filter(t=>t.id!==id);db.activeTripId=db.trips[0].id;activeTrip=db.trips[0];save();resetMaps();renderAll();};
 
+
 function renderPlanning(){
   $("legList").innerHTML=activeTrip.legs.map((l,i)=>`
-    <div class="item" draggable="true" data-leg-id="${l.id}">
-      <strong>${i+1}. ${escapeHtml(l.title)}</strong><br>
-      ${escapeHtml(l.date)} · ${Number(l.plannedKm||0)} km · ${escapeHtml(l.plannedTime||"")}<br>
-      ${escapeHtml(l.overnight||"")}
-      <div class="item-actions">
-        <button onclick="editLeg('${l.id}')">Bearbeiten</button>
+    <div class="leg-card" draggable="true" data-leg-id="${l.id}">
+      <div class="leg-card-head">
+        <div>
+          <strong>${i+1}. ${escapeHtml(l.title)}</strong><br>
+          ${escapeHtml(l.date)} · ${escapeHtml(l.from)} → ${escapeHtml(l.to)}<br>
+          ${escapeHtml(l.overnight||"")}
+        </div>
+        <button class="secondary" onclick="editLeg('${l.id}')">Bearbeiten</button>
+      </div>
+      <div class="leg-route-meta">
+        <div><strong id="legKm-${l.id}">${Number(l.routeKm || l.plannedKm || 0).toFixed(0)} km</strong><small>${l.routeKm ? "echte Route" : "Planwert"}</small></div>
+        <div><strong id="legTime-${l.id}">${l.routeTime || escapeHtml(l.plannedTime||"–")}</strong><small>${l.routeTime ? "Routingzeit" : "Planzeit"}</small></div>
+      </div>
+      <div class="leg-mini-map" id="legMap-${l.id}"></div>
+      <div class="leg-actions">
+        <button onclick="buildLegRoute('${l.id}', true)">Route laden</button>
+        <button class="secondary" onclick="openLegInMap('${l.id}')">Große Karte</button>
         <button class="secondary" onclick="moveLeg('${l.id}',-1)">↑</button>
         <button class="secondary" onclick="moveLeg('${l.id}',1)">↓</button>
         <button class="secondary" onclick="duplicateLeg('${l.id}')">Duplizieren</button>
@@ -94,7 +106,96 @@ function renderPlanning(){
       </div>
     </div>`).join("") || "<p>Noch keine Etappen.</p>";
   setupLegDragDrop();
+  setTimeout(initLegMiniMaps, 150);
 }
+
+const legMiniMaps = {};
+function legRouteCacheKey(id){
+  const i=activeTrip.legs.findIndex(l=>l.id===id);
+  if(i<0 || i>=activeTrip.legs.length-1) return null;
+  const a=activeTrip.legs[i], b=activeTrip.legs[i+1];
+  return `expedition-core1-3-legroute:${activeTrip.id}:${activeTrip.routeMode||"osrm"}:${id}:${Number(a.lat).toFixed(5)},${Number(a.lon).toFixed(5)}:${Number(b.lat).toFixed(5)},${Number(b.lon).toFixed(5)}`;
+}
+function nextLegPair(id){
+  const i=activeTrip.legs.findIndex(l=>l.id===id);
+  if(i<0) return null;
+  return {i,a:activeTrip.legs[i],b:activeTrip.legs[i+1]||null};
+}
+function initLegMiniMaps(){
+  activeTrip.legs.forEach(leg=>{
+    const el=document.getElementById(`legMap-${leg.id}`);
+    if(!el || legMiniMaps[leg.id]) return;
+    const m=L.map(el,{zoomControl:false,attributionControl:false}).setView([leg.lat||46,leg.lon||3],8);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(m);
+    legMiniMaps[leg.id]=m;
+    drawLegMiniRoute(leg.id);
+    setTimeout(()=>m.invalidateSize(),200);
+  });
+}
+function clearMiniMap(m){
+  m.eachLayer(layer=>{if(layer instanceof L.Marker || layer instanceof L.Polyline)m.removeLayer(layer);});
+}
+function drawLegMiniRoute(id){
+  const pair=nextLegPair(id), m=legMiniMaps[id];
+  if(!pair||!m) return;
+  clearMiniMap(m);
+  const {a,b}=pair;
+  if(!Number(a.lat)||!Number(a.lon)) return;
+  L.marker([a.lat,a.lon]).addTo(m).bindPopup(a.title||"Start");
+  if(b&&Number(b.lat)&&Number(b.lon)){
+    L.marker([b.lat,b.lon]).addTo(m).bindPopup(b.title||"Ziel");
+    const cached=localStorage.getItem(legRouteCacheKey(id));
+    if(cached){
+      try{
+        const payload=JSON.parse(cached);
+        const line=L.polyline(payload.coords.map(c=>[c[1],c[0]]),{color:"#4e9cff",weight:4}).addTo(m);
+        m.fitBounds(line.getBounds(),{padding:[12,12]});
+        updateLegRouteMeta(id,payload);
+        return;
+      }catch(e){}
+    }
+    const line=L.polyline([[a.lat,a.lon],[b.lat,b.lon]],{color:"#4e9cff",weight:3,opacity:.55,dashArray:"6 6"}).addTo(m);
+    m.fitBounds(line.getBounds(),{padding:[12,12]});
+  } else m.setView([a.lat,a.lon],10);
+}
+function updateLegRouteMeta(id,payload){
+  const km=document.getElementById(`legKm-${id}`);
+  const time=document.getElementById(`legTime-${id}`);
+  if(km) km.textContent=`${(payload.distanceM/1000).toFixed(0)} km`;
+  if(time){const h=Math.floor(payload.durationS/3600), mi=Math.round((payload.durationS%3600)/60);time.textContent=`${h}:${String(mi).padStart(2,"0")} h`;}
+}
+async function buildLegRoute(id, force=false){
+  const pair=nextLegPair(id);
+  if(!pair||!pair.b){alert("Für die letzte Etappe gibt es keinen nächsten Zielpunkt.");return;}
+  const {a,b}=pair, key=legRouteCacheKey(id);
+  if(!force&&key&&localStorage.getItem(key)){drawLegMiniRoute(id);return;}
+  if((activeTrip.routeMode||"osrm")==="ors-avoid"&&!activeTrip.orsApiKey){alert("Für 'ohne Autobahn' bitte in der Kartenansicht einen OpenRouteService API-Key eintragen.");return;}
+  try{
+    const res=(activeTrip.routeMode||"osrm")==="ors-avoid" ? await fetchOrs({lat:a.lat,lon:a.lon},{lat:b.lat,lon:b.lon}) : await fetchOsrm({lat:a.lat,lon:a.lon},{lat:b.lat,lon:b.lon});
+    const payload={coords:res.coords,distanceM:res.distanceM,durationS:res.durationS,createdAt:new Date().toISOString()};
+    localStorage.setItem(key,JSON.stringify(payload));
+    a.routeKm=res.distanceM/1000;
+    const h=Math.floor(res.durationS/3600), mi=Math.round((res.durationS%3600)/60);
+    a.routeTime=`${h}:${String(mi).padStart(2,"0")} h`;
+    save();
+    drawLegMiniRoute(id);
+    updateLegRouteMeta(id,payload);
+    renderDashboard();
+  }catch(e){console.error(e);alert("Etappenroute konnte nicht berechnet werden: "+e.message);}
+}
+function openLegInMap(id){
+  showView("mapView");
+  setTimeout(()=>{
+    initMap();
+    const pair=nextLegPair(id);
+    if(!pair||!map)return;
+    const {a,b}=pair;
+    if(b&&Number(a.lat)&&Number(a.lon)&&Number(b.lat)&&Number(b.lon)) map.fitBounds([[a.lat,a.lon],[b.lat,b.lon]],{padding:[40,40]});
+    else if(Number(a.lat)&&Number(a.lon)) map.setView([a.lat,a.lon],11);
+  },250);
+}
+function clearLegRouteCaches(){Object.keys(localStorage).filter(k=>k.startsWith("expedition-core1-3-legroute:")).forEach(k=>localStorage.removeItem(k));}
+
 function setupLegDragDrop(){
   const items = document.querySelectorAll("#legList [data-leg-id]");
   let dragId = null;
@@ -131,7 +232,7 @@ window.editLeg=id=>{
 window.saveLeg=id=>{
   const l=activeTrip.legs.find(x=>x.id===id);
   Object.assign(l,{title:$("le-title").value,date:$("le-date").value,plannedKm:Number($("le-km").value||0),from:$("le-from").value,to:$("le-to").value,plannedTime:$("le-time").value,overnight:$("le-overnight").value,lat:Number($("le-lat").value||0),lon:Number($("le-lon").value||0),notes:$("le-notes").value});
-  save(); $("legEditor").hidden=true; renderAll(); resetMaps();
+  clearLegRouteCaches(); save(); $("legEditor").hidden=true; renderAll(); resetMaps();
 };
 window.moveLeg=(id,d)=>{const a=activeTrip.legs,i=a.findIndex(l=>l.id===id),j=i+d;if(i<0||j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];save();renderPlanning();resetMaps();};
 window.duplicateLeg=id=>{const i=activeTrip.legs.findIndex(l=>l.id===id);if(i<0)return;const copy=JSON.parse(JSON.stringify(activeTrip.legs[i]));copy.id="leg-"+Date.now();copy.title += " (Kopie)";activeTrip.legs.splice(i+1,0,copy);save();renderPlanning();};
@@ -166,7 +267,7 @@ function setupForms(){
 function downloadJSON(data,name){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}));a.download=name;a.click();}
 function importJSON(file,cb){if(!file)return;const r=new FileReader();r.onload=()=>{try{cb(JSON.parse(r.result));}catch(e){alert("Import fehlgeschlagen: "+e.message)}};r.readAsText(file);}
 
-function resetMaps(){miniMap=null;map=null;plannedLayer=null;drivenLayer=null;liveLayer=null;liveMarker=null;$("miniMap").innerHTML="";$("map").innerHTML="";}
+function resetMaps(){miniMap=null;map=null;plannedLayer=null;drivenLayer=null;liveLayer=null;liveMarker=null;Object.keys(legMiniMaps).forEach(k=>delete legMiniMaps[k]);$("miniMap").innerHTML="";$("map").innerHTML="";}
 function initMiniMap(){if(miniMap)return;miniMap=L.map("miniMap",{zoomControl:false,attributionControl:false}).setView([46,3],5);L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(miniMap);drawStraightRoute(miniMap);}
 function initMap(){if(map){map.invalidateSize();return;}map=L.map("map").setView([46,3],5);L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(map);$("routeMode").value=activeTrip.routeMode||"osrm";$("orsApiKey").value=activeTrip.orsApiKey||"";drawStraightRoute(map);drawTracks(map);setTimeout(()=>buildRoadRoute(false),200);}
 function routePoints(){return activeTrip.legs.map(l=>({lat:Number(l.lat),lon:Number(l.lon),title:l.title})).filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lon)&&p.lat&&p.lon);}

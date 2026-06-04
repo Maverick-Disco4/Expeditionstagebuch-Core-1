@@ -25,3 +25,10 @@ Saubere PWA-Version für mehrere Expeditionen.
 - manifest.webmanifest
 - sw.js
 - README.md
+
+## Core 1.3 – Etappen-Minikarten
+- Jede Etappe zeigt eine eigene Minikarte.
+- Pro Etappe kann die echte Straßenroute zum nächsten Etappenziel geladen werden.
+- Etappenrouten werden lokal gecached.
+- Minikarten zeigen Start, Ziel und entweder echte Route oder gestrichelte Luftlinie.
+- Etappen-Metakarten zeigen echte Routing-km und Routingzeit, sobald berechnet.

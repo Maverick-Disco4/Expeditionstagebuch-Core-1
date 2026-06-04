@@ -62,3 +62,15 @@ input,select,textarea{width:100%;padding:12px;border-radius:12px;border:1px soli
   nav button{font-size:18px}
   .card{border-radius:16px}
 }
+
+/* Core 1.3 Etappen-Minikarten */
+.leg-card{background:#08130d;border:1px solid var(--line);border-radius:16px;padding:12px;margin:12px 0;color:var(--muted)}
+.leg-card strong{color:var(--text)}
+.leg-card-head{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start}
+.leg-mini-map{height:190px;border-radius:14px;border:1px solid var(--line);overflow:hidden;margin:10px 0;background:#06100a}
+.leg-route-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+.leg-route-meta div{background:#102219;border:1px solid var(--line);border-radius:12px;padding:9px;text-align:center}
+.leg-route-meta strong{display:block;font-size:16px}
+.leg-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.leg-actions button{padding:9px;font-size:13px}
+@media(max-width:760px){.leg-card-head,.leg-route-meta,.leg-actions{grid-template-columns:1fr}.leg-mini-map{height:210px}}
