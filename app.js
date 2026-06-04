@@ -325,4 +325,108 @@ function dist(a,b){const R=6371,dLat=(b.lat-a.lat)*Math.PI/180,dLon=(b.lon-a.lon
 async function registerSW(){if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js");}
 let deferredPrompt;window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredPrompt=e;$("installBtn").hidden=false;});
 $("installBtn").onclick=async()=>{if(deferredPrompt){deferredPrompt.prompt();deferredPrompt=null;$("installBtn").hidden=true;}};
+
+
+/* ===== Core 1.4: responsive map handling on rotation/resize ===== */
+let resizeRefreshTimer = null;
+
+function allActiveMaps(){
+  const maps = [];
+  if(miniMap) maps.push({map: miniMap, type: "mini"});
+  if(map) maps.push({map: map, type: "main"});
+  Object.keys(legMiniMaps || {}).forEach(id => {
+    if(legMiniMaps[id]) maps.push({map: legMiniMaps[id], type: "leg", id});
+  });
+  return maps;
+}
+
+function fitLegMapToRoute(id){
+  const m = legMiniMaps[id];
+  const pair = nextLegPair(id);
+  if(!m || !pair) return;
+  const {a,b} = pair;
+  const cached = localStorage.getItem(legRouteCacheKey(id));
+  try{
+    if(cached){
+      const payload = JSON.parse(cached);
+      if(payload.coords && payload.coords.length){
+        const bounds = L.latLngBounds(payload.coords.map(c => [c[1], c[0]]));
+        m.fitBounds(bounds, {padding:[18,18]});
+        return;
+      }
+    }
+    if(b && Number(a.lat) && Number(a.lon) && Number(b.lat) && Number(b.lon)){
+      m.fitBounds([[a.lat,a.lon],[b.lat,b.lon]], {padding:[18,18]});
+    } else if(Number(a.lat) && Number(a.lon)){
+      m.setView([a.lat,a.lon], 10);
+    }
+  }catch(e){}
+}
+
+function fitMainMapToVisibleRoute(){
+  if(!map) return;
+  try{
+    if(plannedLayer && plannedLayer.getBounds){
+      map.fitBounds(plannedLayer.getBounds(), {padding:[28,28]});
+      return;
+    }
+    const pts = routePoints().map(p => [p.lat,p.lon]);
+    if(pts.length >= 2) map.fitBounds(pts, {padding:[28,28]});
+    else if(pts.length === 1) map.setView(pts[0], 10);
+  }catch(e){}
+}
+
+function refreshMapsAfterLayoutChange(){
+  clearTimeout(resizeRefreshTimer);
+  resizeRefreshTimer = setTimeout(() => {
+    allActiveMaps().forEach(entry => {
+      try{ entry.map.invalidateSize(true); }catch(e){}
+    });
+
+    if(miniMap){
+      try{
+        const pts = routePoints().map(p => [p.lat,p.lon]);
+        if(pts.length >= 2) miniMap.fitBounds(pts, {padding:[18,18]});
+      }catch(e){}
+    }
+
+    Object.keys(legMiniMaps || {}).forEach(id => {
+      try{
+        drawLegMiniRoute(id);
+        setTimeout(() => fitLegMapToRoute(id), 80);
+      }catch(e){}
+    });
+
+    setTimeout(fitMainMapToVisibleRoute, 80);
+  }, 250);
+}
+
+window.addEventListener("resize", refreshMapsAfterLayoutChange);
+window.addEventListener("orientationchange", refreshMapsAfterLayoutChange);
+
+const originalShowViewCore14 = typeof showView === "function" ? showView : null;
+if(originalShowViewCore14){
+  showView = function(id){
+    originalShowViewCore14(id);
+    setTimeout(refreshMapsAfterLayoutChange, 250);
+  };
+  window.showView = showView;
+}
+
+const originalInitLegMiniMapsCore14 = typeof initLegMiniMaps === "function" ? initLegMiniMaps : null;
+if(originalInitLegMiniMapsCore14){
+  initLegMiniMaps = function(){
+    originalInitLegMiniMapsCore14();
+    setTimeout(refreshMapsAfterLayoutChange, 350);
+  };
+}
+
+const originalDrawRoadCore14 = typeof drawRoad === "function" ? drawRoad : null;
+if(originalDrawRoadCore14){
+  drawRoad = function(payload){
+    originalDrawRoadCore14(payload);
+    setTimeout(fitMainMapToVisibleRoute, 120);
+  };
+}
+
 init();

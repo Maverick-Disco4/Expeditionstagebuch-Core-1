@@ -32,3 +32,11 @@ Saubere PWA-Version für mehrere Expeditionen.
 - Etappenrouten werden lokal gecached.
 - Minikarten zeigen Start, Ziel und entweder echte Route oder gestrichelte Luftlinie.
 - Etappen-Metakarten zeigen echte Routing-km und Routingzeit, sobald berechnet.
+
+## Core 1.4 – Karten im Querformat
+- Etappen-Minikarten werden größer dargestellt.
+- Im Querformat nutzt die Karte deutlich mehr Bildschirmhöhe.
+- Hauptkarte wird im Querformat ebenfalls vergrößert.
+- Nach Drehen des Smartphones werden alle Leaflet-Karten neu gerendert.
+- Routen werden nach Rotation wieder passend zentriert.
+- Start/Ziel beziehungsweise Straßenroute bleiben im sichtbaren Bereich.

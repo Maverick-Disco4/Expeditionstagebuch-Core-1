@@ -74,3 +74,32 @@ input,select,textarea{width:100%;padding:12px;border-radius:12px;border:1px soli
 .leg-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
 .leg-actions button{padding:9px;font-size:13px}
 @media(max-width:760px){.leg-card-head,.leg-route-meta,.leg-actions{grid-template-columns:1fr}.leg-mini-map{height:210px}}
+
+/* Core 1.4 responsive maps / landscape mode */
+.leg-mini-map{height:240px}
+#map{height:calc(100vh - 278px);min-height:430px}
+.orientation-hint{color:var(--muted);font-size:12px;margin-top:6px}
+@media(max-width:760px){
+  .leg-mini-map{height:260px}
+}
+@media(orientation:landscape){
+  body{padding-bottom:70px}
+  header{padding:8px 14px}
+  header h1{font-size:16px}
+  header p{font-size:12px}
+  main{padding:8px;max-width:none}
+  .card{padding:10px;margin-bottom:8px;border-radius:14px}
+  .leg-mini-map{height:62vh;min-height:300px}
+  #miniMap{height:54vh!important;min-height:280px!important}
+  #map{height:calc(100vh - 150px);min-height:330px}
+  .map-tools{grid-template-columns:1fr;gap:6px}
+  .route-controls{grid-template-columns:1fr 1fr auto auto}
+  nav{padding-top:4px;padding-bottom:4px}
+  nav button small{font-size:9px}
+  .plus{width:44px;height:44px;font-size:24px}
+}
+@media(orientation:landscape) and (max-height:520px){
+  .leg-mini-map{height:68vh;min-height:260px}
+  #map{height:calc(100vh - 120px);min-height:260px}
+  .hero{min-height:180px}
+}
