@@ -466,4 +466,252 @@ if(originalDrawRoadCore14){
   };
 }
 
+
+
+/* ===== Core 1.6: robust per-leg routes and batch routing ===== */
+function core16SetBatchStatus(text, pct=null){
+  const el = document.getElementById("routeBatchStatus");
+  if(!el) return;
+  el.innerHTML = escapeHtml(text) + (pct !== null ? `<div class="route-batch-progress"><span style="width:${Math.max(0,Math.min(100,pct))}%"></span></div>` : "");
+}
+
+function core16ClearOldRouteCaches(){
+  Object.keys(localStorage)
+    .filter(k => k.startsWith("expedition-core1-3-legroute:") || k.startsWith("expedition-core1-5-legroute:"))
+    .forEach(k => localStorage.removeItem(k));
+}
+
+function normalizeLegModel(t){
+  t.legs ||= [];
+  t.legs.forEach((l, idx) => {
+    const prev = idx > 0 ? t.legs[idx-1] : null;
+    if(!Number(l.fromLat) || !Number(l.fromLon)){
+      if(idx === 0){ l.fromLat = 53.183; l.fromLon = 8.000; }
+      else if(prev){ l.fromLat = Number(prev.toLat ?? prev.lat ?? 0); l.fromLon = Number(prev.toLon ?? prev.lon ?? 0); }
+    }
+    if(!Number(l.toLat) || !Number(l.toLon)){
+      l.toLat = Number(l.lat || 0);
+      l.toLon = Number(l.lon || 0);
+    }
+    l.fromLat = Number(l.fromLat || 0);
+    l.fromLon = Number(l.fromLon || 0);
+    l.toLat = Number(l.toLat || 0);
+    l.toLon = Number(l.toLon || 0);
+    l.lat = l.toLat;
+    l.lon = l.toLon;
+    if(!l.routeStatus) l.routeStatus = l.routeGeometry?.length ? "ok" : "not_loaded";
+  });
+}
+
+function legRouteCacheKey(id){
+  const leg = activeTrip.legs.find(l=>l.id===id);
+  if(!leg) return null;
+  return `expedition-core1-6-legroute:${activeTrip.id}:${activeTrip.routeMode||"osrm"}:${id}:${Number(leg.fromLat).toFixed(5)},${Number(leg.fromLon).toFixed(5)}:${Number(leg.toLat).toFixed(5)},${Number(leg.toLon).toFixed(5)}`;
+}
+
+function legPair(id){
+  const i = activeTrip.legs.findIndex(l=>l.id===id);
+  if(i < 0) return null;
+  const l = activeTrip.legs[i];
+  return {
+    i,
+    a:{lat:Number(l.fromLat), lon:Number(l.fromLon), title:l.from||"Start"},
+    b:{lat:Number(l.toLat), lon:Number(l.toLon), title:l.to||"Ziel"},
+    leg:l
+  };
+}
+function nextLegPair(id){ return legPair(id); }
+
+function routeChipHtml(l){
+  if(l.routeStatus === "ok" && l.routeGeometry?.length) return `<span class="route-chip ok">Route gespeichert</span>`;
+  if(l.routeStatus === "error") return `<span class="route-chip err">Routingfehler</span>`;
+  if(!Number(l.fromLat)||!Number(l.fromLon)||!Number(l.toLat)||!Number(l.toLon)) return `<span class="route-chip err">Koordinaten fehlen</span>`;
+  return `<span class="route-chip warn">Luftlinie / Route nicht geladen</span>`;
+}
+
+function renderPlanning(){
+  normalizeLegModel(activeTrip);
+  $("legList").innerHTML=activeTrip.legs.map((l,i)=>`
+    <div class="leg-card" draggable="true" data-leg-id="${l.id}">
+      <div class="leg-card-head">
+        <div>
+          <strong>${i+1}. ${escapeHtml(l.title)}</strong><br>
+          ${escapeHtml(l.date)} · ${escapeHtml(l.from)} → ${escapeHtml(l.to)}<br>
+          ${escapeHtml(l.overnight||"")}<br>${routeChipHtml(l)}
+        </div>
+        <button class="secondary" onclick="editLeg('${l.id}')">Bearbeiten</button>
+      </div>
+      <div class="leg-point-grid">
+        <div><strong>Start</strong>${escapeHtml(l.from)}<br><small>${Number(l.fromLat||0).toFixed(5)}, ${Number(l.fromLon||0).toFixed(5)}</small></div>
+        <div><strong>Ziel</strong>${escapeHtml(l.to)}<br><small>${Number(l.toLat||0).toFixed(5)}, ${Number(l.toLon||0).toFixed(5)}</small></div>
+      </div>
+      <div class="leg-route-meta">
+        <div><strong id="legKm-${l.id}">${Number(l.routeKm || l.plannedKm || 0).toFixed(0)} km</strong><small>${l.routeKm ? "echte Route" : "Planwert"}</small></div>
+        <div><strong id="legTime-${l.id}">${l.routeTime || escapeHtml(l.plannedTime||"–")}</strong><small>${l.routeTime ? "Routingzeit" : "Planzeit"}</small></div>
+      </div>
+      <div class="leg-mini-map" id="legMap-${l.id}"></div>
+      <div class="leg-actions">
+        <button onclick="buildLegRoute('${l.id}', true)">Route laden</button>
+        <button class="secondary" onclick="openLegInMap('${l.id}')">Große Karte</button>
+        <button class="secondary" onclick="moveLeg('${l.id}',-1)">↑</button>
+        <button class="secondary" onclick="moveLeg('${l.id}',1)">↓</button>
+        <button class="secondary" onclick="duplicateLeg('${l.id}')">Duplizieren</button>
+        <button class="danger" onclick="deleteLeg('${l.id}')">Löschen</button>
+      </div>
+    </div>`).join("") || "<p>Noch keine Etappen.</p>";
+  setupLegDragDrop();
+  setTimeout(initLegMiniMaps, 180);
+}
+
+function initLegMiniMaps(){
+  normalizeLegModel(activeTrip);
+  activeTrip.legs.forEach(leg=>{
+    const el=document.getElementById(`legMap-${leg.id}`);
+    if(!el) return;
+    if(legMiniMaps[leg.id]){
+      try{ legMiniMaps[leg.id].invalidateSize(true); drawLegMiniRoute(leg.id); }catch(e){}
+      return;
+    }
+    const startLat=Number(leg.fromLat||leg.toLat||46), startLon=Number(leg.fromLon||leg.toLon||3);
+    const m=L.map(el,{zoomControl:false,attributionControl:false}).setView([startLat,startLon],8);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(m);
+    legMiniMaps[leg.id]=m;
+    setTimeout(()=>{ m.invalidateSize(true); drawLegMiniRoute(leg.id); }, 180);
+  });
+}
+
+function drawLegMiniRoute(id){
+  const pair=legPair(id), m=legMiniMaps[id];
+  if(!pair||!m) return;
+  clearMiniMap(m);
+  const {a,b,leg}=pair;
+  if(!Number(a.lat)||!Number(a.lon)||!Number(b.lat)||!Number(b.lon)) return;
+
+  L.marker([a.lat,a.lon]).addTo(m).bindPopup(a.title||"Start");
+  L.marker([b.lat,b.lon]).addTo(m).bindPopup(b.title||"Ziel");
+
+  let payload = null;
+  if(leg.routeGeometry?.length){
+    payload = {coords: leg.routeGeometry, distanceM: Number(leg.routeDistanceM||0), durationS: Number(leg.routeDurationS||0)};
+  } else {
+    const cached = localStorage.getItem(legRouteCacheKey(id));
+    if(cached){ try{ payload = JSON.parse(cached); }catch(e){} }
+  }
+
+  if(payload?.coords?.length){
+    const line=L.polyline(payload.coords.map(c=>[c[1],c[0]]),{color:"#4e9cff",weight:4}).addTo(m);
+    try{ m.fitBounds(line.getBounds(),{padding:[14,14]}); }catch(e){}
+    updateLegRouteMeta(id,payload);
+    return;
+  }
+
+  const line=L.polyline([[a.lat,a.lon],[b.lat,b.lon]],{color:"#4e9cff",weight:3,opacity:.55,dashArray:"6 6"}).addTo(m);
+  try{ m.fitBounds(line.getBounds(),{padding:[14,14]}); }catch(e){}
+}
+
+async function buildLegRoute(id, force=false){
+  const pair=legPair(id);
+  if(!pair){ alert("Etappe nicht gefunden."); return false; }
+  const {a,b,leg}=pair, key=legRouteCacheKey(id);
+
+  if(!Number(a.lat)||!Number(a.lon)||!Number(b.lat)||!Number(b.lon)){
+    leg.routeStatus = "error"; save(); alert("Start- oder Zielkoordinaten fehlen."); renderPlanning(); return false;
+  }
+
+  if(!force && leg.routeGeometry?.length){ drawLegMiniRoute(id); return true; }
+
+  if(!force && key && localStorage.getItem(key)){
+    try{
+      const payload = JSON.parse(localStorage.getItem(key));
+      persistLegRoute(leg, payload); drawLegMiniRoute(id); save(); return true;
+    }catch(e){}
+  }
+
+  if((activeTrip.routeMode||"osrm")==="ors-avoid" && !activeTrip.orsApiKey){
+    alert("Für 'ohne Autobahn' bitte in der Kartenansicht einen OpenRouteService API-Key eintragen.");
+    return false;
+  }
+
+  try{
+    leg.routeStatus = "loading";
+    const res=(activeTrip.routeMode||"osrm")==="ors-avoid" ? await fetchOrs(a,b) : await fetchOsrm(a,b);
+    const payload={coords:res.coords,distanceM:res.distanceM,durationS:res.durationS,createdAt:new Date().toISOString()};
+    localStorage.setItem(key,JSON.stringify(payload));
+    persistLegRoute(leg, payload);
+    save(); drawLegMiniRoute(id); updateLegRouteMeta(id,payload); return true;
+  }catch(e){
+    console.error(e);
+    leg.routeStatus = "error"; leg.routeError = e.message; save(); drawLegMiniRoute(id);
+    alert("Etappenroute konnte nicht berechnet werden: " + e.message);
+    return false;
+  }
+}
+
+function persistLegRoute(leg, payload){
+  leg.routeGeometry = payload.coords || [];
+  leg.routeDistanceM = Number(payload.distanceM || 0);
+  leg.routeDurationS = Number(payload.durationS || 0);
+  leg.routeKm = leg.routeDistanceM/1000;
+  const h=Math.floor(leg.routeDurationS/3600), mi=Math.round((leg.routeDurationS%3600)/60);
+  leg.routeTime=`${h}:${String(mi).padStart(2,"0")} h`;
+  leg.routeStatus = "ok";
+  delete leg.routeError;
+}
+
+async function buildAllLegRoutes(){
+  normalizeLegModel(activeTrip);
+  const legs = activeTrip.legs;
+  if(!legs.length) return;
+  let ok = 0;
+  for(let i=0;i<legs.length;i++){
+    core16SetBatchStatus(`Berechne Etappe ${i+1}/${legs.length}: ${legs[i].title}`, Math.round(i/legs.length*100));
+    const success = await buildLegRoute(legs[i].id, true);
+    if(success) ok++;
+    renderPlanning();
+    await new Promise(resolve => setTimeout(resolve, 250));
+  }
+  core16SetBatchStatus(`Fertig: ${ok}/${legs.length} Etappen berechnet.`, 100);
+  save(); renderAll();
+}
+
+function clearLegRouteCaches(){
+  Object.keys(localStorage)
+    .filter(k => k.startsWith("expedition-core1-6-legroute:") || k.startsWith("expedition-core1-5-legroute:") || k.startsWith("expedition-core1-3-legroute:"))
+    .forEach(k=>localStorage.removeItem(k));
+}
+
+function invalidateLegRoute(leg){
+  delete leg.routeGeometry; delete leg.routeDistanceM; delete leg.routeDurationS; delete leg.routeKm; delete leg.routeTime;
+  leg.routeStatus = "not_loaded"; delete leg.routeError;
+}
+
+const originalSetupFormsCore16 = typeof setupForms === "function" ? setupForms : null;
+if(originalSetupFormsCore16){
+  setupForms = function(){
+    originalSetupFormsCore16();
+    const allBtn = document.getElementById("buildAllRoutesBtn");
+    if(allBtn && !allBtn.__core16){ allBtn.__core16 = true; allBtn.onclick = buildAllLegRoutes; }
+  };
+}
+
+const originalSaveLegCore16 = typeof saveLeg === "function" ? saveLeg : null;
+if(originalSaveLegCore16){
+  saveLeg = function(id){
+    const leg = activeTrip.legs.find(l=>l.id===id);
+    if(leg) invalidateLegRoute(leg);
+    originalSaveLegCore16(id);
+    normalizeLegModel(activeTrip);
+    save();
+  };
+}
+
+setTimeout(() => {
+  core16ClearOldRouteCaches();
+  normalizeLegModel(activeTrip);
+  const allBtn = document.getElementById("buildAllRoutesBtn");
+  if(allBtn) allBtn.onclick = buildAllLegRoutes;
+  save();
+  renderAll();
+}, 800);
+
 init();

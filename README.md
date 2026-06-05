@@ -48,3 +48,13 @@ Saubere PWA-Version für mehrere Expeditionen.
 - Bad Zwischenahn → Morvan wird nun als eigene Route berechnet.
 - Große Expeditionskarte nutzt Startpunkt der ersten Etappe plus Zielpunkte aller Etappen.
 - Alte Daten werden beim Laden automatisch in das neue Modell überführt.
+
+## Core 1.6 – Stabilitätsfix Etappenrouten
+- Jede Etappe wird beim Laden robust auf Start-/Zielkoordinaten geprüft.
+- Alte Routencaches aus 1.3/1.5 werden ignoriert beziehungsweise gelöscht.
+- Erfolgreich berechnete Routen werden direkt in der Etappe gespeichert.
+- Minikarten zeichnen gespeicherte Routen, danach Cache, danach Luftlinie.
+- Button „Alle Routen berechnen“ ergänzt.
+- Statusanzeige und Fortschritt für Sammelberechnung.
+- Routingfehler werden pro Etappe sichtbar statt still zu scheitern.
+- Minikarten werden auf Android robuster neu gezeichnet.

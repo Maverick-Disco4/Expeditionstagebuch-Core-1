@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#07150d">
-  <title>Expeditionstagebuch Core 1.5</title>
+  <title>Expeditionstagebuch Core 1.6</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -13,7 +13,7 @@
 <header>
   <button class="icon" id="menuBtn">☰</button>
   <div>
-    <h1>Expeditionstagebuch Core 1.5</h1>
+    <h1>Expeditionstagebuch Core 1.6</h1>
     <p id="activeTripSub">Aktive Expedition</p>
   </div>
   <button id="installBtn" hidden>Installieren</button>
@@ -91,13 +91,15 @@
 
   <section id="planning" class="view">
     <section class="card">
-      <h2>Planung <span class="badge">Core 1.5</span></h2>
+      <h2>Planung <span class="badge">Core 1.6</span></h2>
       <p class="hint">Jede Etappe besitzt eigenen Start und eigenes Ziel. Die Minikarte zeigt die echte Route dieser Etappe.</p>
       <div class="action-row">
         <button id="addLegBtn">Etappe hinzufügen</button>
+        <button id="buildAllRoutesBtn" class="secondary">Alle Routen berechnen</button>
         <button id="exportTripBtn" class="secondary">Trip exportieren</button>
       </div>
       <label class="import">Trip importieren<input id="importTripInput" type="file" accept="application/json"></label>
+      <div id="routeBatchStatus" class="route-status">Etappenrouten bereit.</div>
       <div id="legEditor" hidden></div>
       <div id="legList"></div>
     </section>

@@ -109,3 +109,11 @@ input,select,textarea{width:100%;padding:12px;border-radius:12px;border:1px soli
 .leg-point-grid div{background:#102219;border:1px solid var(--line);border-radius:12px;padding:9px}
 .leg-point-grid strong{display:block;color:var(--text);font-size:13px}
 @media(max-width:760px){.leg-point-grid{grid-template-columns:1fr}}
+
+/* Core 1.6 route stability */
+.route-chip{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:3px 8px;font-size:12px;margin-top:4px;color:var(--muted)}
+.route-chip.ok{color:#7df08f;border-color:#22b83f88}
+.route-chip.warn{color:#ffd27a;border-color:#d8aa3d88}
+.route-chip.err{color:#ffb6b6;border-color:#dd4d4d88}
+.route-batch-progress{height:8px;background:#ffffff1c;border-radius:999px;overflow:hidden;margin-top:8px}
+.route-batch-progress span{display:block;height:100%;width:0;background:var(--green)}
