@@ -1,5 +1,5 @@
 {
-  "appName": "Expeditionstagebuch Core 1.6",
+  "appName": "Expeditionstagebuch Core 1.6a",
   "activeTripId": "frankreich-2026",
   "trips": [
     {
@@ -54,14 +54,15 @@
           "to": "Chambord / Chenonceau",
           "plannedKm": 120,
           "plannedTime": "3:00 h",
-          "lat": 47.413,
-          "lon": 0.982,
+          "lat": 47.6161,
+          "lon": 1.5172,
           "overnight": "Amboise / Bléré",
           "notes": "Schlösser und Kajakoption.",
           "fromLat": 47.413,
           "fromLon": 0.982,
-          "toLat": 47.413,
-          "toLon": 0.982
+          "toLat": 47.6161,
+          "toLon": 1.5172,
+          "routeStatus": "not_loaded"
         },
         {
           "id": "leg-04",

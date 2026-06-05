@@ -58,3 +58,9 @@ Saubere PWA-Version für mehrere Expeditionen.
 - Statusanzeige und Fortschritt für Sammelberechnung.
 - Routingfehler werden pro Etappe sichtbar statt still zu scheitern.
 - Minikarten werden auf Android robuster neu gezeichnet.
+
+## Core 1.6a – Rundtage und identische Koordinaten
+- Identische Start-/Zielkoordinaten werden erkannt.
+- Rundtage/Aufenthaltstage werden als solche markiert.
+- Bekannte Problemziele wie Dierre, Chenonceau/Chenonceaux und Chambord werden bei identischen Koordinaten automatisch korrigiert.
+- „Alle Routen berechnen“ prüft Rundtage und berechnet echte Etappen.
