@@ -364,7 +364,7 @@ let deferredPrompt;window.addEventListener("beforeinstallprompt",e=>{e.preventDe
 $("installBtn").onclick=async()=>{if(deferredPrompt){deferredPrompt.prompt();deferredPrompt=null;$("installBtn").hidden=true;}};
 
 
-/* ===== Core 1.4: responsive map handling on rotation/resize ===== */
+/* ===== Core 1.6b: responsive map handling on rotation/resize ===== */
 let resizeRefreshTimer = null;
 
 function allActiveMaps(){
@@ -468,7 +468,7 @@ if(originalDrawRoadCore14){
 
 
 
-/* ===== Core 1.6: robust per-leg routes and batch routing ===== */
+/* ===== Core 1.6b: robust per-leg routes and batch routing ===== */
 function core16SetBatchStatus(text, pct=null){
   const el = document.getElementById("routeBatchStatus");
   if(!el) return;
@@ -715,7 +715,7 @@ setTimeout(() => {
 }, 800);
 
 
-/* ===== Core 1.6a: fix identical start/target coordinates and stay days ===== */
+/* ===== Core 1.6b: fix identical start/target coordinates and stay days ===== */
 const CORE16A_PLACE_FIXES={"dierre":[47.3497,0.9578],"chenonceau":[47.3249,1.0703],"chenonceaux":[47.3309,1.0676],"chambord":[47.6161,1.5172]};
 function core16aDistanceMeters(aLat,aLon,bLat,bLon){const R=6371000,dLat=(bLat-aLat)*Math.PI/180,dLon=(bLon-aLon)*Math.PI/180;const x=Math.sin(dLat/2)**2+Math.cos(aLat*Math.PI/180)*Math.cos(bLat*Math.PI/180)*Math.sin(dLon/2)**2;return 2*R*Math.asin(Math.sqrt(x));}
 function core16aIsSamePoint(leg){return core16aDistanceMeters(Number(leg.fromLat||0),Number(leg.fromLon||0),Number(leg.toLat||0),Number(leg.toLon||0))<80;}
@@ -737,5 +737,77 @@ function drawLegMiniRoute(id){const pair=legPair(id),m=legMiniMaps[id];if(!pair|
 async function buildLegRoute(id,force=false){normalizeLegModel(activeTrip);const pair=legPair(id);if(!pair){alert("Etappe nicht gefunden.");return false;}const {a,b,leg}=pair,key=legRouteCacheKey(id);if(core16aApplyKnownFixes(leg)){save();}if(core16aIsSamePoint(leg)){leg.routeStatus="stay";leg.routeKm=0;leg.routeTime="0:00 h";delete leg.routeGeometry;delete leg.routeDistanceM;delete leg.routeDurationS;save();drawLegMiniRoute(id);renderPlanning();return true;}if(!Number(a.lat)||!Number(a.lon)||!Number(b.lat)||!Number(b.lon)){leg.routeStatus="error";save();alert("Start- oder Zielkoordinaten fehlen.");renderPlanning();return false;}if(!force&&leg.routeGeometry?.length){drawLegMiniRoute(id);return true;}if(!force&&key&&localStorage.getItem(key)){try{const payload=JSON.parse(localStorage.getItem(key));persistLegRoute(leg,payload);drawLegMiniRoute(id);save();renderPlanning();return true;}catch(e){}}if((activeTrip.routeMode||"osrm")==="ors-avoid"&&!activeTrip.orsApiKey){alert("Für 'ohne Autobahn' bitte in der Kartenansicht einen OpenRouteService API-Key eintragen.");return false;}try{leg.routeStatus="loading";const res=(activeTrip.routeMode||"osrm")==="ors-avoid"?await fetchOrs(a,b):await fetchOsrm(a,b);const payload={coords:res.coords,distanceM:res.distanceM,durationS:res.durationS,createdAt:new Date().toISOString()};localStorage.setItem(key,JSON.stringify(payload));persistLegRoute(leg,payload);save();drawLegMiniRoute(id);updateLegRouteMeta(id,payload);renderPlanning();return true;}catch(e){console.error(e);leg.routeStatus="error";leg.routeError=e.message;save();drawLegMiniRoute(id);alert("Etappenroute konnte nicht berechnet werden: "+e.message);renderPlanning();return false;}}
 async function buildAllLegRoutes(){normalizeLegModel(activeTrip);const legs=activeTrip.legs;if(!legs.length)return;let ok=0;for(let i=0;i<legs.length;i++){core16SetBatchStatus(`Berechne/prüfe Etappe ${i+1}/${legs.length}: ${legs[i].title}`,Math.round(i/legs.length*100));const success=await buildLegRoute(legs[i].id,true);if(success)ok++;await new Promise(r=>setTimeout(r,250));}core16SetBatchStatus(`Fertig: ${ok}/${legs.length} Etappen geprüft/berechnet.`,100);save();renderAll();}
 setTimeout(()=>{normalizeLegModel(activeTrip);save();renderAll();},1200);
+
+
+
+/* ===== Core 1.6b: rebuild blank/minikarten after planning rerender ===== */
+function core16bDestroyLegMiniMaps(){
+  if(typeof legMiniMaps === "undefined") return;
+  Object.keys(legMiniMaps).forEach(id => {
+    try{
+      if(legMiniMaps[id] && legMiniMaps[id].remove) legMiniMaps[id].remove();
+    }catch(e){}
+    delete legMiniMaps[id];
+  });
+}
+
+function core16bRebuildVisibleLegMaps(){
+  if(typeof activeTrip === "undefined" || !activeTrip?.legs) return;
+  if(typeof normalizeLegModel === "function") normalizeLegModel(activeTrip);
+  if(typeof legMiniMaps === "undefined") return;
+
+  activeTrip.legs.forEach(leg => {
+    const el = document.getElementById(`legMap-${leg.id}`);
+    if(!el) return;
+
+    try{ delete el._leaflet_id; }catch(e){}
+
+    if(legMiniMaps[leg.id]){
+      try{ legMiniMaps[leg.id].remove(); }catch(e){}
+      delete legMiniMaps[leg.id];
+    }
+
+    const startLat = Number(leg.fromLat || leg.toLat || leg.lat || 46);
+    const startLon = Number(leg.fromLon || leg.toLon || leg.lon || 3);
+
+    try{
+      const m = L.map(el, {zoomControl:false, attributionControl:false}).setView([startLat,startLon], 8);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:19}).addTo(m);
+      legMiniMaps[leg.id] = m;
+
+      setTimeout(() => {
+        try{
+          m.invalidateSize(true);
+          drawLegMiniRoute(leg.id);
+          m.invalidateSize(true);
+        }catch(e){}
+      }, 200);
+
+      setTimeout(() => {
+        try{
+          m.invalidateSize(true);
+          drawLegMiniRoute(leg.id);
+        }catch(e){}
+      }, 900);
+    }catch(e){
+      console.warn("Minikarte konnte nicht neu aufgebaut werden", leg.id, e);
+    }
+  });
+}
+
+const originalRenderPlanningCore16b = typeof renderPlanning === "function" ? renderPlanning : null;
+if(originalRenderPlanningCore16b){
+  renderPlanning = function(){
+    core16bDestroyLegMiniMaps();
+    originalRenderPlanningCore16b();
+    setTimeout(core16bRebuildVisibleLegMaps, 250);
+  };
+}
+
+initLegMiniMaps = function(){
+  core16bRebuildVisibleLegMaps();
+};
+
+setTimeout(core16bRebuildVisibleLegMaps, 1200);
 
 init();

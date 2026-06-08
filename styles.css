@@ -121,3 +121,6 @@ input,select,textarea{width:100%;padding:12px;border-radius:12px;border:1px soli
 /* Core 1.6a identical point / stay handling */
 .route-chip.stay{color:#9fd1ff;border-color:#4e9cff88}
 .leg-warning{border:1px solid #d8aa3d88;background:#2a210c;border-radius:12px;padding:9px;margin:8px 0;color:#ffd27a;font-size:13px}
+
+/* Core 1.6b minikarte recovery */
+.leg-mini-map.leaflet-container{background:#06100a}

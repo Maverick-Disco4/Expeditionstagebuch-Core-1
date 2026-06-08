@@ -64,3 +64,10 @@ Saubere PWA-Version für mehrere Expeditionen.
 - Rundtage/Aufenthaltstage werden als solche markiert.
 - Bekannte Problemziele wie Dierre, Chenonceau/Chenonceaux und Chambord werden bei identischen Koordinaten automatisch korrigiert.
 - „Alle Routen berechnen“ prüft Rundtage und berechnet echte Etappen.
+
+## Core 1.6b – Minikarten-Fix
+- Behebt leere Minikarten nach dem Neurendern der Planung.
+- Alte Leaflet-Instanzen werden sauber entfernt.
+- Minikarten werden nach dem Rendern neu aufgebaut.
+- Gespeicherte Routengeometrie wird wieder eingezeichnet.
+- Mehrfaches invalidateSize() für Android/Samsung Browser ergänzt.
